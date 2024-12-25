@@ -1,8 +1,10 @@
 from copy import copy
 from pprint import pprint
 
+from tabulate import tabulate
+
 # Variables
-KEY = "G"
+KEY = "Bb"
 PROGRESSION = [1,5,4,1]
 
 # Statics
@@ -123,33 +125,20 @@ def get_tablature(progression_with_triades):
                 tablature[string][pattern_name].append((first_note, second_note, third_note))
     return tablature
 
-
-if __name__ == '__main__':
-    major_scale = get_major_scale_in_key(KEY)
-    print(f"'{KEY}' major scale: {major_scale}")
-    # Get chord list for major scale
-    chord_progression = get_chords(major_scale, PROGRESSION)
-    print(f"Chord progression: {chord_progression}")
-
-    # Get triades for each chord of the progression
-    triades = get_major_triades(chord_progression, major_scale)
-    print("Triade in each note:")
-    pprint(triades)
-
-    # Get all triade progression possibilities
-    progression_with_triades = get_progression_with_triades(chord_progression, triades)
-    for pattern_name, progression in progression_with_triades.items():
-        print(f"{pattern_name}: {progression}")
-
-    tablature = get_tablature(progression_with_triades)
-    pprint(tablature)
-
+def pretty_print_tablature(tablature):
+    empty_string = "- - - - - - - - -    - - - - - - - - -   - - - - - - - - -"
     for string, patterns in tablature.items():
         print("\n")
         print(f"ROOT STRING: {string}")
         root_string = string
         second_string = get_next_string(root_string)
         third_string = get_next_string(second_string)
+
+        string_after_third = list()
+        for guitar_string in reversed(TUNING):
+            if guitar_string == third_string:
+                break
+            print(f"{guitar_string}  | {empty_string}")
 
         print(f"{third_string:<2} | {patterns['PATTERN_1'][0][2]:<2} - {patterns['PATTERN_1'][1][2]:<2} - {patterns['PATTERN_1'][2][2]:<2} - {patterns['PATTERN_1'][3][2]:<2}", end='')
         print(f"    {patterns['PATTERN_2'][0][2]:<2} - {patterns['PATTERN_2'][1][2]:<2} - {patterns['PATTERN_2'][2][2]:<2} - {patterns['PATTERN_2'][3][2]:<2}", end='')
@@ -162,3 +151,56 @@ if __name__ == '__main__':
         print(f"{root_string:<2} | {patterns['PATTERN_1'][0][0]:<2} - {patterns['PATTERN_1'][1][0]:<2} - {patterns['PATTERN_1'][2][0]:<2} - {patterns['PATTERN_1'][3][0]:<2}", end='')
         print(f"    {patterns['PATTERN_2'][0][0]:<2} - {patterns['PATTERN_2'][1][0]:<2} - {patterns['PATTERN_2'][2][0]:<2} - {patterns['PATTERN_2'][3][0]:<2}", end='')
         print(f"    {patterns['PATTERN_3'][0][0]:<2} - {patterns['PATTERN_3'][1][0]:<2} - {patterns['PATTERN_3'][2][0]:<2} - {patterns['PATTERN_3'][3][0]:<2}", flush=True)
+        string_before_root = list()
+        for i in range(len(TUNING)):
+            if TUNING[i] == root_string:
+                break
+            guitar_string = f"{TUNING[i]}  | {empty_string}"
+            string_before_root.append(guitar_string)
+        for i in reversed(string_before_root):
+            print(i)
+
+
+
+def pretty_print_triade(triades):
+    # headers = ["Position", "Order", "Notes"]
+    for key, notes in triades.items():
+        line_root = ["root"] + notes["root"]
+        line_1st = ["1st"] + notes["1st"]
+        line_2nd = ["2nd"] + notes["2nd"]
+        table = list()
+        table.append(line_root)
+        table.append(line_1st)
+        table.append(line_2nd)
+        print(tabulate(table, tablefmt="github"))
+        print("\n")
+
+
+
+if __name__ == '__main__':
+    major_scale = get_major_scale_in_key(KEY)
+    print(f"\n'{KEY}' major scale: {major_scale}")
+    # Get chord list for major scale
+    chord_progression = get_chords(major_scale, PROGRESSION)
+    print(f"{PROGRESSION} chord progression in key of {KEY}: {chord_progression}\n")
+
+    # Get triades for each chord of the progression
+    triades = get_major_triades(chord_progression, major_scale)
+    print("Triade in each note:\n")
+    pretty_print_triade(triades)
+
+    # Get all triade progression possibilities
+    print("Patterns:\n")
+    progression_with_triades = get_progression_with_triades(chord_progression, triades)
+    for pattern_name, progression in progression_with_triades.items():
+        print(f"{pattern_name}: {progression}")
+
+    tablature = get_tablature(progression_with_triades)
+    pretty_print_tablature(tablature)
+
+
+
+
+# TODO
+# add + 12 when 0 and 10 detected in same patern
+# order pattern (12 a the end)
