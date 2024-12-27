@@ -177,23 +177,10 @@ def pretty_print_triade(triades):
 
 
 def move_chord_plus_12(pattern):
-    def add_12(note):
-        return note + 12
-
-    new_pattern = list()
-    for chord in pattern:
-        note_1 = chord[0]
-        note_2 = chord[1]
-        note_3 = chord[2]
-        if note_1 < 8:
-            note_1 = add_12(note_1)
-        if note_2 < 8:
-            note_2= add_12(note_2)
-        if note_3 < 8:
-            note_3= add_12(note_3)
-        new_chord = (note_1, note_2, note_3)
-        new_pattern.append(new_chord)
-    return new_pattern
+    return [
+        tuple(note + 12 if note < 8 else note for note in chord)
+        for chord in pattern
+    ]
 
 def remove_open_position(tablature):
     for string, patterns in tablature.items():
@@ -202,6 +189,17 @@ def remove_open_position(tablature):
                 if 0 in chord: # if we find one zero, move the whole pattern to 12 position
                     tablature[string][pattern_name] = move_chord_plus_12(pattern)
                     break
+    return tablature
+
+
+def order_patterns_by_value(tablature):
+
+    for string, patterns in tablature.items():
+        # Extract and sort the contents of the patterns
+        sorted_contents = sorted(patterns.values(), key=lambda pattern: sum(sum(chord) for chord in pattern))
+        # Reassign the sorted contents to the original keys
+        reordered_patterns = {key: content for key, content in zip(patterns.keys(), sorted_contents)}
+        tablature[string] = reordered_patterns
     return tablature
 
 
@@ -225,9 +223,9 @@ if __name__ == '__main__':
 
     tablature = get_tablature(progression_with_triades)
     tablature = remove_open_position(tablature)
+    tablature = order_patterns_by_value(tablature)
 
     pretty_print_tablature(tablature)
-
 
 
 
