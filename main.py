@@ -4,7 +4,7 @@ from pprint import pprint
 from tabulate import tabulate
 
 # Variables
-KEY = "Bb"
+KEY = "A"
 PROGRESSION = [1,5,4,1]
 
 # Statics
@@ -163,7 +163,7 @@ def pretty_print_tablature(tablature):
 
 
 def pretty_print_triade(triades):
-    # headers = ["Position", "Order", "Notes"]
+    headers = ["Position", "Note1", "Note2", "Note3"]
     for key, notes in triades.items():
         line_root = ["root"] + notes["root"]
         line_1st = ["1st"] + notes["1st"]
@@ -172,13 +172,13 @@ def pretty_print_triade(triades):
         table.append(line_root)
         table.append(line_1st)
         table.append(line_2nd)
-        print(tabulate(table, tablefmt="github"))
+        print(tabulate(table, headers, tablefmt="github"))
         print("\n")
 
 
 def move_chord_plus_12(pattern):
     return [
-        tuple(note + 12 if note < 8 else note for note in chord)
+        tuple(note + 12 if note < 7 else note for note in chord)
         for chord in pattern
     ]
 
@@ -186,7 +186,7 @@ def remove_open_position(tablature):
     for string, patterns in tablature.items():
         for pattern_name, pattern in patterns.items():
             for chord in pattern:
-                if 0 in chord: # if we find one zero, move the whole pattern to 12 position
+                if 0 in chord and (10 in chord or 11 in chord): # if we find one zero, move the whole pattern to 12 position
                     tablature[string][pattern_name] = move_chord_plus_12(pattern)
                     break
     return tablature
