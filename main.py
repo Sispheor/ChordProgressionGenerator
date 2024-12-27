@@ -176,6 +176,34 @@ def pretty_print_triade(triades):
         print("\n")
 
 
+def move_chord_plus_12(pattern):
+    def add_12(note):
+        return note + 12
+
+    new_pattern = list()
+    for chord in pattern:
+        note_1 = chord[0]
+        note_2 = chord[1]
+        note_3 = chord[2]
+        if note_1 < 8:
+            note_1 = add_12(note_1)
+        if note_2 < 8:
+            note_2= add_12(note_2)
+        if note_3 < 8:
+            note_3= add_12(note_3)
+        new_chord = (note_1, note_2, note_3)
+        new_pattern.append(new_chord)
+    return new_pattern
+
+def remove_open_position(tablature):
+    for string, patterns in tablature.items():
+        for pattern_name, pattern in patterns.items():
+            for chord in pattern:
+                if 0 in chord: # if we find one zero, move the whole pattern to 12 position
+                    tablature[string][pattern_name] = move_chord_plus_12(pattern)
+                    break
+    return tablature
+
 
 if __name__ == '__main__':
     major_scale = get_major_scale_in_key(KEY)
@@ -196,11 +224,12 @@ if __name__ == '__main__':
         print(f"{pattern_name}: {progression}")
 
     tablature = get_tablature(progression_with_triades)
+    tablature = remove_open_position(tablature)
+
     pretty_print_tablature(tablature)
 
 
 
 
 # TODO
-# add + 12 when 0 and 10 detected in same patern
 # order pattern (12 a the end)
