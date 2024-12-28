@@ -4,70 +4,80 @@ from pprint import pprint
 from tabulate import tabulate
 
 # Variables
-KEY = "A"
-PROGRESSION = [1,5,4,1]
+KEY = "E"
+SCALE_MODE = "MINOR"
+PROGRESSION = [1,4,1,5]
 
 # Statics
 NOTES_FLAT = ["Ab", "A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G"]
 NOTES_SHARP = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
+TUNING = ["E", "A", "D", "G", "B", "E"]
 MAJOR_SCALE_FORMULA = [2,2,1,2,2,2,1]
-MAJOR_TRIADE = {
+MINOR_SCALE_FORMULA = [2,1,2,2,1,2,2]
+TRIADE_INVERSIONS = {
     "root": [1, 3, 5],
     "1st": [3, 5, 1],
     "2nd": [5, 1, 3],
 }
-PATTERN_1 = ["Root", "1st", "2nd", "Root"]
-PATTERN_2 = ["1st", "2nd", "Root", "1st"]
-PATTERN_3 = ["2nd", "Root", "1st", "2nd"]
+
 PATTERNS = {
-    "PATTERN_1": PATTERN_1,
-    "PATTERN_2": PATTERN_2,
-    "PATTERN_3": PATTERN_3,
+    "MAJOR": {
+        "PATTERN_1": ["Root", "1st", "2nd", "Root"],
+        "PATTERN_2": ["1st", "2nd", "Root", "1st"],
+        "PATTERN_3": ["2nd", "Root", "1st", "2nd"]
+    },
+    "MINOR": {
+        "PATTERN_1": ["1st", "Root", "1st", "2nd"],
+        "PATTERN_2": ["Root", "2nd", "Root", "1st"],
+        "PATTERN_3": ["2nd", "1st", "2nd", "Root"],
+    }
+
 }
 
-TUNING = ["E", "A", "D", "G", "B", "E"]
 
-
-def get_major_scale_in_key(key):
+def get_scale_in_key(key, scale_type="MAJOR"):
     list_to_use = NOTES_SHARP
     if "b" in key:
         list_to_use = NOTES_FLAT
-
+    if scale_type == "MINOR":
+        scale_formula = MINOR_SCALE_FORMULA
+    else:
+        scale_formula = MAJOR_SCALE_FORMULA
     # Find the starting index of the key in the notes list
     start_index = list_to_use.index(key)
-    # Initialize the major scale with the root note
-    major_scale = [key]
+    # Initialize the scale with the root note
+    current_scale = [key]
     # Generate the scale by applying the formula
     current_index = start_index
-    for step in MAJOR_SCALE_FORMULA:
+    for step in scale_formula:
         current_index = (current_index + step) % len(list_to_use)  # Wrap around the list if necessary
-        if list_to_use[current_index] not in major_scale:
-            major_scale.append(list_to_use[current_index])
-    return major_scale
+        if list_to_use[current_index] not in current_scale:
+            current_scale.append(list_to_use[current_index])
+    return current_scale
 
 
 def get_chords(current_key_major_scale, progression_formula):
     return [current_key_major_scale[degree - 1] for degree in progression_formula]
 
-def get_major_triades(chord_progression, major_scale):
-    triades = {}
+def get_triads(chord_progression, scale):
+    triads = {}
     for note in chord_progression:
-        root_index = major_scale.index(note)
-        triades[note] = {
+        root_index = scale.index(note)
+        triads[note] = {
             inversion: [
-                major_scale[(root_index + degree - 1) % len(major_scale)]
+                scale[(root_index + degree - 1) % len(scale)]
                 for degree in formula
             ]
-            for inversion, formula in MAJOR_TRIADE.items()
+            for inversion, formula in TRIADE_INVERSIONS.items()
         }
 
-    return triades
+    return triads
 
-def get_progression_with_triades(chord_progression, triades):
+def get_progression_with_triads(chord_progression, triads, scale_mode):
     progression_with_triades = {}
-    for pattern_name, pattern in PATTERNS.items():
+    for pattern_name, pattern in PATTERNS[scale_mode].items():
         progression_with_triades[pattern_name] = [
-            triades[chord][inversion.lower()] for chord, inversion in zip(chord_progression, pattern)
+            triads[chord][inversion.lower()] for chord, inversion in zip(chord_progression, pattern)
         ]
     return progression_with_triades
 
@@ -204,30 +214,27 @@ def order_patterns_by_value(tablature):
 
 
 if __name__ == '__main__':
-    major_scale = get_major_scale_in_key(KEY)
-    print(f"\n'{KEY}' major scale: {major_scale}")
-    # Get chord list for major scale
-    chord_progression = get_chords(major_scale, PROGRESSION)
-    print(f"{PROGRESSION} chord progression in key of {KEY}: {chord_progression}\n")
 
-    # Get triades for each chord of the progression
-    triades = get_major_triades(chord_progression, major_scale)
+    scale = get_scale_in_key(KEY, SCALE_MODE)
+    print(f"\n'{KEY}' {SCALE_MODE} scale: {scale}")
+    # Get chord list for major scale
+    chord_progression = get_chords(scale, PROGRESSION)
+    print(f"{PROGRESSION} chord progression in key of {KEY} {SCALE_MODE}: {chord_progression}\n")
+
+    # Get triads for each chord of the progression
+    triads = get_triads(chord_progression, scale)
     print("Triade in each note:\n")
-    pretty_print_triade(triades)
+    pretty_print_triade(triads)
 
     # Get all triade progression possibilities
     print("Patterns:\n")
-    progression_with_triades = get_progression_with_triades(chord_progression, triades)
-    for pattern_name, progression in progression_with_triades.items():
+    progression_with_triads = get_progression_with_triads(chord_progression, triads, SCALE_MODE)
+    for pattern_name, progression in progression_with_triads.items():
         print(f"{pattern_name}: {progression}")
 
-    tablature = get_tablature(progression_with_triades)
+    tablature = get_tablature(progression_with_triads)
     tablature = remove_open_position(tablature)
     tablature = order_patterns_by_value(tablature)
 
     pretty_print_tablature(tablature)
 
-
-
-# TODO
-# order pattern (12 a the end)
