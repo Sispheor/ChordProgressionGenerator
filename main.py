@@ -4,7 +4,7 @@ from pprint import pprint
 from tabulate import tabulate
 
 # Variables
-KEY = "E"
+KEY = "G"
 SCALE_MODE = "MINOR"
 PROGRESSION = [1,4,1,5]
 
@@ -12,37 +12,39 @@ PROGRESSION = [1,4,1,5]
 NOTES_FLAT = ["Ab", "A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G"]
 NOTES_SHARP = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
 TUNING = ["E", "A", "D", "G", "B", "E"]
-MAJOR_SCALE_FORMULA = [2,2,1,2,2,2,1]
-MINOR_SCALE_FORMULA = [2,1,2,2,1,2,2]
+
+SCALE_FORMULAS = {
+    "MAJOR": {
+        "formula": [2,2,1,2,2,2,1],
+        "patterns": {
+            "PATTERN_1": ["Root", "1st", "2nd", "Root"],
+            "PATTERN_2": ["1st", "2nd", "Root", "1st"],
+            "PATTERN_3": ["2nd", "Root", "1st", "2nd"]
+        }
+    },
+    "MINOR": {
+        "formula": [2,1,2,2,1,2,2],
+        "patterns": {
+            "PATTERN_1": ["1st", "Root", "1st", "2nd"],
+            "PATTERN_2": ["Root", "2nd", "Root", "1st"],
+            "PATTERN_3": ["2nd", "1st", "2nd", "Root"],
+        }
+    }
+}
+
 TRIADE_INVERSIONS = {
     "root": [1, 3, 5],
     "1st": [3, 5, 1],
     "2nd": [5, 1, 3],
 }
 
-PATTERNS = {
-    "MAJOR": {
-        "PATTERN_1": ["Root", "1st", "2nd", "Root"],
-        "PATTERN_2": ["1st", "2nd", "Root", "1st"],
-        "PATTERN_3": ["2nd", "Root", "1st", "2nd"]
-    },
-    "MINOR": {
-        "PATTERN_1": ["1st", "Root", "1st", "2nd"],
-        "PATTERN_2": ["Root", "2nd", "Root", "1st"],
-        "PATTERN_3": ["2nd", "1st", "2nd", "Root"],
-    }
 
-}
-
-
-def get_scale_in_key(key, scale_type="MAJOR"):
+def get_scale_in_key(key, scale_type):
     list_to_use = NOTES_SHARP
     if "b" in key:
         list_to_use = NOTES_FLAT
-    if scale_type == "MINOR":
-        scale_formula = MINOR_SCALE_FORMULA
-    else:
-        scale_formula = MAJOR_SCALE_FORMULA
+
+    scale_formula = copy(SCALE_FORMULAS[scale_type]["formula"])
     # Find the starting index of the key in the notes list
     start_index = list_to_use.index(key)
     # Initialize the scale with the root note
@@ -56,8 +58,8 @@ def get_scale_in_key(key, scale_type="MAJOR"):
     return current_scale
 
 
-def get_chords(current_key_major_scale, progression_formula):
-    return [current_key_major_scale[degree - 1] for degree in progression_formula]
+def get_chords(current_key_scale, progression_formula):
+    return [current_key_scale[degree - 1] for degree in progression_formula]
 
 def get_triads(chord_progression, scale):
     triads = {}
@@ -74,12 +76,12 @@ def get_triads(chord_progression, scale):
     return triads
 
 def get_progression_with_triads(chord_progression, triads, scale_mode):
-    progression_with_triades = {}
-    for pattern_name, pattern in PATTERNS[scale_mode].items():
-        progression_with_triades[pattern_name] = [
+    progression_with_triads = {}
+    for pattern_name, pattern in SCALE_FORMULAS[scale_mode]["patterns"].items():
+        progression_with_triads[pattern_name] = [
             triads[chord][inversion.lower()] for chord, inversion in zip(chord_progression, pattern)
         ]
-    return progression_with_triades
+    return progression_with_triads
 
 
 def get_string_notes(string):
@@ -108,7 +110,7 @@ def get_next_string(base_string):
     return TUNING[index_previous_string+1]
 
 
-def get_tablature(progression_with_triades):
+def get_tablature(progression_with_triads):
     tablature = {}
     number_string = 0
     for string in TUNING:
@@ -123,7 +125,7 @@ def get_tablature(progression_with_triades):
 
     for string, patterns in tablature.items():
         # print(f"String: {string}")
-        for pattern_name, progression in progression_with_triades.items():
+        for pattern_name, progression in progression_with_triads.items():
             # print(pattern_name)
             root_string = string
             second_string = get_next_string(root_string)
