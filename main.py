@@ -5,12 +5,13 @@ from pprint import pprint
 from tabulate import tabulate
 
 # Variables
-KEY = "E"
+KEY = "Am"
 # SCALE_MODE = "DIMINISHED"
-PROGRESSION = ["I", "V", "IV", "I"] # major
+# PROGRESSION = ["I", "V", "IV", "I"] # major
 # PROGRESSION = [1,4,1,5] # minor
-PROGRESSION = ["i", "iv", "i", "v"] # minor
+# PROGRESSION = ["i", "iv", "i", "v"] # minor
 # PROGRESSION = ["VIIdim", "I","VIIdim", "vi"] # dim
+PROGRESSION = ["IIIaug", "i"] # aug
 
 # Statics
 NOTES_FLAT = ["Ab", "A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G"]
@@ -41,6 +42,14 @@ SCALE_FORMULAS = {
             "PATTERN_2": ["1st", "1st", "1st", "1st"],
             "PATTERN_3": ["2nd", "2nd", "2nd", "2nd"],
         }
+    },
+    "AUG": {
+        "formula": [3,1,3,1,3,1],
+        "patterns": {
+            "PATTERN_1": ["2nd", "Root"],
+            "PATTERN_2": ["1st", "2nd"],
+            "PATTERN_3": ["Root", "1st"],
+        }
     }
 }
 
@@ -65,8 +74,13 @@ class Chord(object):
             self.quality = "MINOR"
         if match.group(2) is not None:
             self.quality = match.group(2).upper()
-        key_major_scale = self.get_scale_in_key(KEY, "MAJOR")
-        self.name = key_major_scale[chord_key_integer - 1]
+        base_scale = "MAJOR"
+        key = KEY
+        if "m" in KEY:
+            key = key.replace("m", "")
+            base_scale = "MINOR"
+        chord_scale = self.get_scale_in_key(key, base_scale)
+        self.name = chord_scale[chord_key_integer - 1]
         self.key_scale = self.get_scale_in_key(self.name, self.quality)
         self.triads = self.get_triads()
 
@@ -211,17 +225,30 @@ def pretty_print_tablature(tablature):
                 break
             print(f"{guitar_string}  | {empty_string}")
 
-        print(f"{third_string:<2} | {patterns['PATTERN_1'][0][2]:<2} - {patterns['PATTERN_1'][1][2]:<2} - {patterns['PATTERN_1'][2][2]:<2} - {patterns['PATTERN_1'][3][2]:<2}", end='')
-        print(f"    {patterns['PATTERN_2'][0][2]:<2} - {patterns['PATTERN_2'][1][2]:<2} - {patterns['PATTERN_2'][2][2]:<2} - {patterns['PATTERN_2'][3][2]:<2}", end='')
-        print(f"    {patterns['PATTERN_3'][0][2]:<2} - {patterns['PATTERN_3'][1][2]:<2} - {patterns['PATTERN_3'][2][2]:<2} - {patterns['PATTERN_3'][3][2]:<2}", flush=True)
+        # print(f"{third_string:<2} | {patterns['PATTERN_1'][0][2]:<2} - {patterns['PATTERN_1'][1][2]:<2} - {patterns['PATTERN_1'][2][2]:<2} - {patterns['PATTERN_1'][3][2]:<2}", end='')
+        # print(f"    {patterns['PATTERN_2'][0][2]:<2} - {patterns['PATTERN_2'][1][2]:<2} - {patterns['PATTERN_2'][2][2]:<2} - {patterns['PATTERN_2'][3][2]:<2}", end='')
+        # print(f"    {patterns['PATTERN_3'][0][2]:<2} - {patterns['PATTERN_3'][1][2]:<2} - {patterns['PATTERN_3'][2][2]:<2} - {patterns['PATTERN_3'][3][2]:<2}", flush=True)
+        #
+        # print(f"{second_string:<2} | {patterns['PATTERN_1'][0][1]:<2} - {patterns['PATTERN_1'][1][1]:<2} - {patterns['PATTERN_1'][2][1]:<2} - {patterns['PATTERN_1'][3][1]:<2}", end='')
+        # print(f"    {patterns['PATTERN_2'][0][1]:<2} - {patterns['PATTERN_2'][1][1]:<2} - {patterns['PATTERN_2'][2][1]:<2} - {patterns['PATTERN_2'][3][1]:<2}", end='')
+        # print(f"    {patterns['PATTERN_3'][0][1]:<2} - {patterns['PATTERN_3'][1][1]:<2} - {patterns['PATTERN_3'][2][1]:<2} - {patterns['PATTERN_3'][3][1]:<2}", flush=True)
+        #
+        # print(f"{root_string:<2} | {patterns['PATTERN_1'][0][0]:<2} - {patterns['PATTERN_1'][1][0]:<2} - {patterns['PATTERN_1'][2][0]:<2} - {patterns['PATTERN_1'][3][0]:<2}", end='')
+        # print(f"    {patterns['PATTERN_2'][0][0]:<2} - {patterns['PATTERN_2'][1][0]:<2} - {patterns['PATTERN_2'][2][0]:<2} - {patterns['PATTERN_2'][3][0]:<2}", end='')
+        # print(f"    {patterns['PATTERN_3'][0][0]:<2} - {patterns['PATTERN_3'][1][0]:<2} - {patterns['PATTERN_3'][2][0]:<2} - {patterns['PATTERN_3'][3][0]:<2}", flush=True)
 
-        print(f"{second_string:<2} | {patterns['PATTERN_1'][0][1]:<2} - {patterns['PATTERN_1'][1][1]:<2} - {patterns['PATTERN_1'][2][1]:<2} - {patterns['PATTERN_1'][3][1]:<2}", end='')
-        print(f"    {patterns['PATTERN_2'][0][1]:<2} - {patterns['PATTERN_2'][1][1]:<2} - {patterns['PATTERN_2'][2][1]:<2} - {patterns['PATTERN_2'][3][1]:<2}", end='')
-        print(f"    {patterns['PATTERN_3'][0][1]:<2} - {patterns['PATTERN_3'][1][1]:<2} - {patterns['PATTERN_3'][2][1]:<2} - {patterns['PATTERN_3'][3][1]:<2}", flush=True)
+        print(f"{third_string:<2} | {patterns['PATTERN_1'][0][2]:<2} - {patterns['PATTERN_1'][1][2]:<2}", end='')
+        print(f"    {patterns['PATTERN_2'][0][2]:<2} - {patterns['PATTERN_2'][1][2]:<2} ", end='')
+        print(f"    {patterns['PATTERN_3'][0][2]:<2} - {patterns['PATTERN_3'][1][2]:<2} ", flush=True)
 
-        print(f"{root_string:<2} | {patterns['PATTERN_1'][0][0]:<2} - {patterns['PATTERN_1'][1][0]:<2} - {patterns['PATTERN_1'][2][0]:<2} - {patterns['PATTERN_1'][3][0]:<2}", end='')
-        print(f"    {patterns['PATTERN_2'][0][0]:<2} - {patterns['PATTERN_2'][1][0]:<2} - {patterns['PATTERN_2'][2][0]:<2} - {patterns['PATTERN_2'][3][0]:<2}", end='')
-        print(f"    {patterns['PATTERN_3'][0][0]:<2} - {patterns['PATTERN_3'][1][0]:<2} - {patterns['PATTERN_3'][2][0]:<2} - {patterns['PATTERN_3'][3][0]:<2}", flush=True)
+        print(f"{second_string:<2} | {patterns['PATTERN_1'][0][1]:<2} - {patterns['PATTERN_1'][1][1]:<2}", end='')
+        print(f"    {patterns['PATTERN_2'][0][1]:<2} - {patterns['PATTERN_2'][1][1]:<2}", end='')
+        print(f"    {patterns['PATTERN_3'][0][1]:<2} - {patterns['PATTERN_3'][1][1]:<2}", flush=True)
+
+        print(f"{root_string:<2} | {patterns['PATTERN_1'][0][0]:<2} - {patterns['PATTERN_1'][1][0]:<2}", end='')
+        print(f"    {patterns['PATTERN_2'][0][0]:<2} - {patterns['PATTERN_2'][1][0]:<2}", end='')
+        print(f"    {patterns['PATTERN_3'][0][0]:<2} - {patterns['PATTERN_3'][1][0]:<2}", flush=True)
+
         string_before_root = list()
         for i in range(len(TUNING)):
             if TUNING[i] == root_string:
