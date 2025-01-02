@@ -1,14 +1,11 @@
 import re
 from copy import copy
-from pprint import pprint
 
 from tabulate import tabulate
 
 # Variables
 KEY = "Am"
-# SCALE_MODE = "DIMINISHED"
 # PROGRESSION = ["I", "V", "IV", "I"] # major
-# PROGRESSION = [1,4,1,5] # minor
 # PROGRESSION = ["i", "iv", "i", "v"] # minor
 # PROGRESSION = ["VIIdim", "I","VIIdim", "vi"] # dim
 PROGRESSION = ["IIIaug", "i"] # aug
@@ -64,10 +61,11 @@ ROMAN_REGEX = r"(XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I|xv|xiv|xiii|x
 
 class Chord(object):
 
-    def __init__(self, roman_number):
+    def __init__(self, roman_number, key):
         match = re.search(ROMAN_REGEX, roman_number)
         chord_key_roman = match.group(1)
         chord_key_integer = self._roman_to_int(chord_key_roman)
+        self.key = key
 
         self.quality = "MAJOR"
         if chord_key_roman.islower():
@@ -75,11 +73,10 @@ class Chord(object):
         if match.group(2) is not None:
             self.quality = match.group(2).upper()
         base_scale = "MAJOR"
-        key = KEY
-        if "m" in KEY:
-            key = key.replace("m", "")
+        if "m" in self.key :
+            self.key = self.key.replace("m", "")
             base_scale = "MINOR"
-        chord_scale = self.get_scale_in_key(key, base_scale)
+        chord_scale = self.get_scale_in_key(self.key, base_scale)
         self.name = chord_scale[chord_key_integer - 1]
         self.key_scale = self.get_scale_in_key(self.name, self.quality)
         self.triads = self.get_triads()
@@ -143,13 +140,6 @@ class Chord(object):
             table.append(line_2nd)
             print(tabulate(table, headers, tablefmt="github"))
 
-def get_chords(progression):
-    chords = list()
-    for chord_roman_number in progression:
-        new_chord = Chord(chord_roman_number)
-        chords.append(new_chord)
-    return chords
-
 def get_progression_with_triads(chord_progression):
     progression_with_triads = {}
     main_pattern = SCALE_FORMULAS[chord_progression[0].quality]["patterns"] # the pattern to use correspond to the first note of the progression
@@ -210,8 +200,26 @@ def get_tablature(progression_with_triads):
                 tablature[string][pattern_name].append((first_note, second_note, third_note))
     return tablature
 
+
 def pretty_print_tablature(tablature):
-    empty_string = "- - - - - - - - -    - - - - - - - - -   - - - - - - - - -"
+    def format_pattern_line(string, patterns, idx):
+        return (
+            f"{string:<2} | "
+            f"{patterns['PATTERN_1'][0][idx]:<2} - {patterns['PATTERN_1'][1][idx]:<2} - {patterns['PATTERN_1'][2][idx]:<2} - {patterns['PATTERN_1'][3][idx]:<2}    "
+            f"{patterns['PATTERN_2'][0][idx]:<2} - {patterns['PATTERN_2'][1][idx]:<2} - {patterns['PATTERN_2'][2][idx]:<2} - {patterns['PATTERN_2'][3][idx]:<2}    "
+            f"{patterns['PATTERN_3'][0][idx]:<2} - {patterns['PATTERN_3'][1][idx]:<2} - {patterns['PATTERN_3'][2][idx]:<2} - {patterns['PATTERN_3'][3][idx]:<2}"
+        )
+
+    def format_short_pattern_line(string, patterns, idx):
+        return (
+            f"{string:<2} | "
+            f"{patterns['PATTERN_1'][0][idx]:<2} - {patterns['PATTERN_1'][1][idx]:<2}    "
+            f"{patterns['PATTERN_2'][0][idx]:<2} - {patterns['PATTERN_2'][1][idx]:<2}    "
+            f"{patterns['PATTERN_3'][0][idx]:<2} - {patterns['PATTERN_3'][1][idx]:<2}"
+        )
+
+    empty_string = "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+
     for string, patterns in tablature.items():
         print("\n")
         print(f"ROOT STRING: {string}")
@@ -219,44 +227,32 @@ def pretty_print_tablature(tablature):
         second_string = get_next_string(root_string)
         third_string = get_next_string(second_string)
 
-        string_after_third = list()
+        # Print strings above the third string
         for guitar_string in reversed(TUNING):
             if guitar_string == third_string:
                 break
             print(f"{guitar_string}  | {empty_string}")
 
-        # print(f"{third_string:<2} | {patterns['PATTERN_1'][0][2]:<2} - {patterns['PATTERN_1'][1][2]:<2} - {patterns['PATTERN_1'][2][2]:<2} - {patterns['PATTERN_1'][3][2]:<2}", end='')
-        # print(f"    {patterns['PATTERN_2'][0][2]:<2} - {patterns['PATTERN_2'][1][2]:<2} - {patterns['PATTERN_2'][2][2]:<2} - {patterns['PATTERN_2'][3][2]:<2}", end='')
-        # print(f"    {patterns['PATTERN_3'][0][2]:<2} - {patterns['PATTERN_3'][1][2]:<2} - {patterns['PATTERN_3'][2][2]:<2} - {patterns['PATTERN_3'][3][2]:<2}", flush=True)
-        #
-        # print(f"{second_string:<2} | {patterns['PATTERN_1'][0][1]:<2} - {patterns['PATTERN_1'][1][1]:<2} - {patterns['PATTERN_1'][2][1]:<2} - {patterns['PATTERN_1'][3][1]:<2}", end='')
-        # print(f"    {patterns['PATTERN_2'][0][1]:<2} - {patterns['PATTERN_2'][1][1]:<2} - {patterns['PATTERN_2'][2][1]:<2} - {patterns['PATTERN_2'][3][1]:<2}", end='')
-        # print(f"    {patterns['PATTERN_3'][0][1]:<2} - {patterns['PATTERN_3'][1][1]:<2} - {patterns['PATTERN_3'][2][1]:<2} - {patterns['PATTERN_3'][3][1]:<2}", flush=True)
-        #
-        # print(f"{root_string:<2} | {patterns['PATTERN_1'][0][0]:<2} - {patterns['PATTERN_1'][1][0]:<2} - {patterns['PATTERN_1'][2][0]:<2} - {patterns['PATTERN_1'][3][0]:<2}", end='')
-        # print(f"    {patterns['PATTERN_2'][0][0]:<2} - {patterns['PATTERN_2'][1][0]:<2} - {patterns['PATTERN_2'][2][0]:<2} - {patterns['PATTERN_2'][3][0]:<2}", end='')
-        # print(f"    {patterns['PATTERN_3'][0][0]:<2} - {patterns['PATTERN_3'][1][0]:<2} - {patterns['PATTERN_3'][2][0]:<2} - {patterns['PATTERN_3'][3][0]:<2}", flush=True)
+        # Print patterns
+        if len(patterns['PATTERN_1']) > 2:
+            print(format_pattern_line(third_string, patterns, 2))
+            print(format_pattern_line(second_string, patterns, 1))
+            print(format_pattern_line(root_string, patterns, 0))
+        else:
+            print(format_short_pattern_line(third_string, patterns, 2))
+            print(format_short_pattern_line(second_string, patterns, 1))
+            print(format_short_pattern_line(root_string, patterns, 0))
 
-        print(f"{third_string:<2} | {patterns['PATTERN_1'][0][2]:<2} - {patterns['PATTERN_1'][1][2]:<2}", end='')
-        print(f"    {patterns['PATTERN_2'][0][2]:<2} - {patterns['PATTERN_2'][1][2]:<2} ", end='')
-        print(f"    {patterns['PATTERN_3'][0][2]:<2} - {patterns['PATTERN_3'][1][2]:<2} ", flush=True)
-
-        print(f"{second_string:<2} | {patterns['PATTERN_1'][0][1]:<2} - {patterns['PATTERN_1'][1][1]:<2}", end='')
-        print(f"    {patterns['PATTERN_2'][0][1]:<2} - {patterns['PATTERN_2'][1][1]:<2}", end='')
-        print(f"    {patterns['PATTERN_3'][0][1]:<2} - {patterns['PATTERN_3'][1][1]:<2}", flush=True)
-
-        print(f"{root_string:<2} | {patterns['PATTERN_1'][0][0]:<2} - {patterns['PATTERN_1'][1][0]:<2}", end='')
-        print(f"    {patterns['PATTERN_2'][0][0]:<2} - {patterns['PATTERN_2'][1][0]:<2}", end='')
-        print(f"    {patterns['PATTERN_3'][0][0]:<2} - {patterns['PATTERN_3'][1][0]:<2}", flush=True)
-
-        string_before_root = list()
-        for i in range(len(TUNING)):
-            if TUNING[i] == root_string:
+        # Print strings below the root string
+        strings_before_root = []
+        for guitar_string in TUNING:
+            if guitar_string == root_string:
                 break
-            guitar_string = f"{TUNING[i]}  | {empty_string}"
-            string_before_root.append(guitar_string)
-        for i in reversed(string_before_root):
-            print(i)
+            strings_before_root.append(f"{guitar_string}  | {empty_string}")
+
+        for line in reversed(strings_before_root):
+            print(line)
+
 
 def move_chord_plus_12(pattern):
     return [
@@ -284,8 +280,15 @@ def order_patterns_by_value(tablature):
     return tablature
 
 
+def get_chord_progression(progression, key):
+    chord_progression = list()
+    for chord_roman_number in progression:
+        new_chord = Chord(chord_roman_number, key)
+        chord_progression.append(new_chord)
+    return chord_progression
+
 if __name__ == '__main__':
-    chord_progression = get_chords(PROGRESSION)
+    chord_progression = get_chord_progression(PROGRESSION, KEY)
     print(f"Progression: {PROGRESSION}. Chords in key of {KEY}: " + ' '.join(str(x) for x in chord_progression))
 
     # Get triads for each chord of the progression
