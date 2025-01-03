@@ -1,56 +1,71 @@
 from main import get_progression_with_triads, get_tablature, \
-    remove_open_position, order_patterns_by_value, Chord, get_chord_progression
+    remove_open_position, order_patterns_by_value, Chord, get_flat_or_sharp_note, NOTES_SHARP, ChordProgression
 
 import unittest
-
-
-def get_progression_with_triades(chord_progression, triades):
-    pass
 
 
 class TestChordGenerator(unittest.TestCase):
 
     def _do_test_chord(self, chord, expected_key_scale, expected_name, expected_quality, expected_triads):
-        self.assertListEqual(expected_key_scale, chord.key_scale)
-        self.assertEqual(expected_name, chord.name)
+        self.assertListEqual(expected_key_scale, chord.chord_scale)
+        self.assertEqual(expected_name, chord.root_note)
         self.assertEqual(expected_quality, chord.quality)
         self.assertDictEqual(expected_triads, chord.triads)
 
+    def test_get_flat_note(self):
+        self.assertEqual(get_flat_or_sharp_note("G#", "b"), "G")
+        self.assertEqual(get_flat_or_sharp_note("A", "b"), "G#")
+        self.assertEqual(get_flat_or_sharp_note("A", "#"), "A#")
+        self.assertEqual(get_flat_or_sharp_note("G#", "#"), "A")
+
     def test_chord_model_major(self):
-        new_chord = Chord("I", key="C")
+        chord_progression = ChordProgression("I", key="C")
         expected_key_scale = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
         expected_name = "C"
         expected_quality = "MAJOR"
         expected_triads = {'C': {'1st': ['E', 'G', 'C'], '2nd': ['G', 'C', 'E'], 'root': ['C', 'E', 'G']}}
+        new_chord = Chord(chord_progression, "I")
         self._do_test_chord(new_chord, expected_key_scale, expected_name, expected_quality, expected_triads)
 
-
     def test_chord_model_minor(self):
-        new_chord = Chord("i", key="E")
-        expected_key_scale = ['E', 'F#', 'G', 'A', 'B', 'C', 'D']
+        chord_progression = ChordProgression("i", key="E")
+        expected_key_scale = ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#']
         expected_name = "E"
         expected_quality = "MINOR"
         expected_triads = {'E': {'1st': ['G', 'B', 'E'], '2nd': ['B', 'E', 'G'], 'root': ['E', 'G', 'B']}}
+        new_chord = Chord(chord_progression, "i")
         self._do_test_chord(new_chord, expected_key_scale, expected_name, expected_quality, expected_triads)
 
     def test_chord_model_diminished(self):
-        new_chord = Chord("VIIdim", key="F")
-        expected_key_scale = ['E', 'F#', 'G', 'A', 'A#', 'C', 'C#', 'D#']
+        chord_progression = ChordProgression("VIIdim", key="F")
+        expected_key_scale = ['E', 'F#', 'G#', 'A', 'B', 'C#', 'D#']
         expected_name = "E"
         expected_quality = "DIM"
         expected_triads = {'E': {'1st': ['G', 'A#', 'E'], '2nd': ['A#', 'E', 'G'], 'root': ['E', 'G', 'A#']}}
+        new_chord = Chord(chord_progression, "VIIdim")
         self._do_test_chord(new_chord, expected_key_scale, expected_name, expected_quality, expected_triads)
 
     def test_chord_model_augmented(self):
-        new_chord = Chord("IIIaug", key="Am")
-        expected_key_scale = ['C', 'D#', 'E', 'G', 'G#', 'B']
+        chord_progression = ChordProgression("IIIaug", key="Am")
+        expected_key_scale = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
         expected_name = "C"
         expected_quality = "AUG"
         expected_triads = {'C': {'1st': ['E', 'G#', 'C'], '2nd': ['G#', 'C', 'E'], 'root': ['C', 'E', 'G#']}}
+        new_chord = Chord(chord_progression, "IIIaug")
+        self._do_test_chord(new_chord, expected_key_scale, expected_name, expected_quality, expected_triads)
+
+    def test_chord_model_sus2(self):
+        chord_progression = ChordProgression("Isus2", key="C")
+        expected_key_scale = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+        expected_name = "C"
+        expected_quality = "SUS2"
+        expected_triads = {'C': {'1st': ['D', 'G', 'C'], '2nd': ['G', 'C', 'D'], 'root': ['C', 'D', 'G']}}
+        new_chord = Chord(chord_progression, "Isus2")
         self._do_test_chord(new_chord, expected_key_scale, expected_name, expected_quality, expected_triads)
 
     def test_get_progression_with_triads(self):
-        chord_progression = get_chord_progression(progression=["I", "V", "IV", "I"], key="C")
+        chord_progression = ChordProgression(progression_list_as_roman_number=["I", "V", "IV", "I"], key="C")
+        chord_progression.generate_chords()
         expected_triade_progression =  {'PATTERN_1': [['C', 'E', 'G'], ['B', 'D', 'G'], ['C', 'F', 'A'], ['C', 'E', 'G']],
                                         'PATTERN_2': [['E', 'G', 'C'], ['D', 'G', 'B'], ['F', 'A', 'C'], ['E', 'G', 'C']],
                                         'PATTERN_3': [['G', 'C', 'E'], ['G', 'B', 'D'], ['A', 'C', 'F'], ['G', 'C', 'E']]}

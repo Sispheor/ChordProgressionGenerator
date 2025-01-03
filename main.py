@@ -4,16 +4,44 @@ from copy import copy
 from tabulate import tabulate
 
 # Variables
-KEY = "Am"
+KEY = "C"
 # PROGRESSION = ["I", "V", "IV", "I"] # major
 # PROGRESSION = ["i", "iv", "i", "v"] # minor
 # PROGRESSION = ["VIIdim", "I","VIIdim", "vi"] # dim
-PROGRESSION = ["IIIaug", "i"] # aug
+# PROGRESSION = ["IIIaug", "i"] # aug
+PROGRESSION = ["I", "Isus4", "I", "Isus2"] # sus
+DEFAULT_PATTERN = {
+    "PATTERN_1": ["Root", "Root", "Root", "Root"],
+    "PATTERN_2": ["1st", "1st", "1st", "1st"],
+    "PATTERN_3": ["2nd", "2nd", "2nd", "2nd"],
+}
 
 # Statics
 NOTES_FLAT = ["Ab", "A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G"]
 NOTES_SHARP = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
 TUNING = ["E", "A", "D", "G", "B", "E"]
+ROMAN_REGEX = r"(XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I|xv|xiv|xiii|xii|xi|x|ix|viii|vii|vi|v|iv|iii|ii|i)(dim|aug|sus4|sus2)?"
+
+CHORD_FORMULAS = {
+    "MAJOR": {
+        "formula": [1, 3, 5]
+    },
+    "MINOR": {
+        "formula": [1, "b3", 5]
+    },
+    "DIM": {
+        "formula": [1, "b3", "b5"]
+    },
+    "AUG": {
+        "formula": [1, 3, "#5"]
+    },
+    "SUS2": {
+        "formula": [1, 2, 5]
+    },
+    "SUS4": {
+        "formula": [1, 4, 5]
+    },
+}
 
 SCALE_FORMULAS = {
     "MAJOR": {
@@ -47,88 +75,98 @@ SCALE_FORMULAS = {
             "PATTERN_2": ["1st", "2nd"],
             "PATTERN_3": ["Root", "1st"],
         }
+    },
+    "SUS2": {
+        "patterns": {
+            "PATTERN_1": ["Root", "Root", "Root", "Root"],
+            "PATTERN_2": ["1st", "1st", "1st", "1st"],
+            "PATTERN_3": ["2nd", "2nd", "2nd", "2nd"],
+        }
+    },
+    "SUS4": {
+        "patterns": {
+            "PATTERN_1": ["Root", "Root", "Root", "Root"],
+            "PATTERN_2": ["1st", "1st", "1st", "1st"],
+            "PATTERN_3": ["2nd", "2nd", "2nd", "2nd"],
+        }
     }
 }
 
-TRIADE_INVERSIONS = {
-    "root": [1, 3, 5],
-    "1st": [3, 5, 1],
-    "2nd": [5, 1, 3],
-}
+class ChordProgression(object):
 
-ROMAN_REGEX = r"(XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I|xv|xiv|xiii|xii|xi|x|ix|viii|vii|vi|v|iv|iii|ii|i)(dim|aug)?"
+    def __init__(self, progression_list_as_roman_number, key):
+        self.progression_list_as_roman_number = progression_list_as_roman_number
+        self.key = key
+        self.base_scale = "MAJOR"
+        if "m" in self.key:
+            self.key = self.key.replace("m", "")
+            self.base_scale = "MINOR"
+        self.chords = list()
+        self.key_scale = get_scale_in_key(self.key, self.base_scale)
+
+    def generate_chords(self):
+        for chord_roman_number in self.progression_list_as_roman_number:
+            new_chord = Chord(self, chord_roman_number)
+            self.chords.append(new_chord)
+
+    def pretty_print(self):
+        print(f"Progression: {self.progression_list_as_roman_number}")
+        list_chord_name = [chord.root_note for chord in self.chords]
+        print(f"Chords: {list_chord_name}\n")
+        for chord in self.chords:
+            print(f"Triad inversions of chord '{chord.root_note}' {chord.quality}")
+            chord.pretty_print_triads()
+            print("\n")
 
 
 class Chord(object):
 
-    def __init__(self, roman_number, key):
+    def __init__(self, progression, roman_number):
+        self.progression = progression
         match = re.search(ROMAN_REGEX, roman_number)
-        chord_key_roman = match.group(1)
-        chord_key_integer = self._roman_to_int(chord_key_roman)
-        self.key = key
+        root_note_roman = match.group(1)
+        root_note_integer = _roman_to_int(root_note_roman)
+        self.root_note = self.progression.key_scale[root_note_integer - 1]
 
         self.quality = "MAJOR"
-        if chord_key_roman.islower():
+        if root_note_roman.islower():
             self.quality = "MINOR"
         if match.group(2) is not None:
             self.quality = match.group(2).upper()
-        base_scale = "MAJOR"
-        if "m" in self.key :
-            self.key = self.key.replace("m", "")
-            base_scale = "MINOR"
-        chord_scale = self.get_scale_in_key(self.key, base_scale)
-        self.name = chord_scale[chord_key_integer - 1]
-        self.key_scale = self.get_scale_in_key(self.name, self.quality)
+
+        self.chord_scale = get_scale_in_key(self.root_note) # always based on major scale
         self.triads = self.get_triads()
 
     def __str__(self):
-        return self.name
-
-    def _roman_to_int(self, s):
-        s = s.upper()
-        sum = 0
-        prevValue = 0
-        value = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
-
-        for c in s:
-            currentValue = value[c]
-            sum += (currentValue - 2 * prevValue) if (currentValue > prevValue) else currentValue
-            prevValue = currentValue
-        return sum
+        return self.root_note
 
     def get_triads(self):
         triads = dict()
-        index = 0
-        root_index = self.key_scale.index(self.name)
-        triads[self.name] = {
-            inversion: [
-                self.key_scale[(root_index + degree - 1) % len(self.key_scale)]
-                for degree in formula
-            ]
-            for inversion, formula in TRIADE_INVERSIONS.items()
-        }
-        index += 1
+        triads[self.root_note] = dict()
+        chord_formula = CHORD_FORMULAS[self.quality]["formula"]
+        root = list()
+        for degree in chord_formula:
+            if isinstance(degree, int):
+                root.append(self.chord_scale[degree - 1])
+            else:
+                # we have a string
+                number_letter_regex = r"(.)(\d)"
+                match = re.search(number_letter_regex, degree)
+                letter = match.group(1)
+                position = match.group(2)
+                base_note = self.chord_scale[int(position) -1]
+                new_note = get_flat_or_sharp_note(base_note, letter)
+                root.append(new_note)
+
+        first_inversion = root[1:] + [root[0]]
+        second_inversion = first_inversion[1:] + [first_inversion[0]]
+        triads[self.root_note]["root"] = root
+        triads[self.root_note]["1st"] = first_inversion
+        triads[self.root_note]["2nd"] = second_inversion
+
         return triads
 
-    def get_scale_in_key(self, key, scale_type):
-        list_to_use = NOTES_SHARP
-        if "b" in key:
-            list_to_use = NOTES_FLAT
-
-        scale_formula = copy(SCALE_FORMULAS[scale_type]["formula"])
-        # Find the starting index of the key in the notes list
-        start_index = list_to_use.index(key)
-        # Initialize the scale with the root note
-        current_scale = [key]
-        # Generate the scale by applying the formula
-        current_index = start_index
-        for step in scale_formula:
-            current_index = (current_index + step) % len(list_to_use)  # Wrap around the list if necessary
-            if list_to_use[current_index] not in current_scale:
-                current_scale.append(list_to_use[current_index])
-        return current_scale
-
-    def pretty_print_triade(self):
+    def pretty_print_triads(self):
         headers = ["Position", "Note1", "Note2", "Note3"]
         for key, notes in self.triads.items():
             line_root = ["root"] + notes["root"]
@@ -140,13 +178,57 @@ class Chord(object):
             table.append(line_2nd)
             print(tabulate(table, headers, tablefmt="github"))
 
+
+def _roman_to_int(s):
+    s = s.upper()
+    sum = 0
+    prevValue = 0
+    value = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+    for c in s:
+        currentValue = value[c]
+        sum += (currentValue - 2 * prevValue) if (currentValue > prevValue) else currentValue
+        prevValue = currentValue
+    return sum
+
+def get_scale_in_key(key, base_scale="MAJOR"):
+    list_to_use = NOTES_SHARP
+    if "b" in key:
+        list_to_use = NOTES_FLAT
+    scale_formula = copy(SCALE_FORMULAS[base_scale]["formula"])
+    # Find the starting index of the key in the notes list
+    start_index = list_to_use.index(key)
+    # Initialize the scale with the root note
+    current_scale = [key]
+    # Generate the scale by applying the formula
+    current_index = start_index
+    for step in scale_formula:
+        current_index = (current_index + step) % len(list_to_use)  # Wrap around the list if necessary
+        if list_to_use[current_index] not in current_scale:
+            current_scale.append(list_to_use[current_index])
+    return current_scale
+
+def get_flat_or_sharp_note(base_note, letter):
+    list_to_use = NOTES_SHARP
+    if "b" in base_note:
+        list_to_use = NOTES_FLAT
+    index = list_to_use.index(base_note)
+    if letter == "b":  # return previous note (flat)
+        return list_to_use[(index - 1) % len(list_to_use)]
+    if letter == "#": # return the next note (sharp)
+        return list_to_use[(index + 1) % len(list_to_use)]
+
 def get_progression_with_triads(chord_progression):
     progression_with_triads = {}
-    main_pattern = SCALE_FORMULAS[chord_progression[0].quality]["patterns"] # the pattern to use correspond to the first note of the progression
+    main_pattern = SCALE_FORMULAS[chord_progression.chords[0].quality]["patterns"]  # the pattern to use correspond to the first note of the progression
+    for chord in chord_progression.progression_list_as_roman_number:
+        if "sus" in chord:
+            main_pattern = DEFAULT_PATTERN
+            break
+
     for pattern_name, pattern in main_pattern.items():
         progression_with_triads[pattern_name] = list()
-        for chord, inversion in zip(chord_progression, pattern):
-            progression_with_triads[pattern_name].append(chord.triads[chord.name][inversion.lower()])
+        for chord, inversion in zip(chord_progression.chords, pattern):
+            progression_with_triads[pattern_name].append(chord.triads[chord.root_note][inversion.lower()])
     return progression_with_triads
 
 def get_string_notes(string):
@@ -280,24 +362,10 @@ def order_patterns_by_value(tablature):
     return tablature
 
 
-def get_chord_progression(progression, key):
-    chord_progression = list()
-    for chord_roman_number in progression:
-        new_chord = Chord(chord_roman_number, key)
-        chord_progression.append(new_chord)
-    return chord_progression
-
 if __name__ == '__main__':
-    chord_progression = get_chord_progression(PROGRESSION, KEY)
-    print(f"Progression: {PROGRESSION}. Chords in key of {KEY}: " + ' '.join(str(x) for x in chord_progression))
-
-    # Get triads for each chord of the progression
-    # triads = get_triads(chord_progression)
-    print("Triad in each note:\n")
-    for chord in chord_progression:
-        print(f"Triad of chord: {chord.name} {chord.quality}")
-        chord.pretty_print_triade()
-        print("\n")
+    chord_progression = ChordProgression(PROGRESSION, KEY)
+    chord_progression.generate_chords()
+    chord_progression.pretty_print()
 
     # Get all triade progression possibilities
     print("Patterns:\n")
