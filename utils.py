@@ -25,6 +25,7 @@ def get_flat_or_sharp_note(base_note, letter):
         return list_to_use[(index + 1) % len(list_to_use)]
 
 def get_string_notes(string):
+    string = string.upper()
     list_sharp = copy(NOTES_SHARP)
     list_flat = copy(NOTES_FLAT)
     start_index_sharp = list_sharp.index(string)
@@ -45,5 +46,6 @@ def get_note_index_on_string(string, note):
         return current_string_notes["b"].index(note)
 
 def get_next_string(base_string):
+    base_string = base_string.upper()
     index_previous_string = TUNING.index(base_string)
     return TUNING[index_previous_string+1]

@@ -1,8 +1,9 @@
+# common var
+TUNING = ["E", "A", "D", "G", "B", "e"]
 
 # Statics
 NOTES_FLAT = ["Ab", "A", "Bb", "B", "C", "Db", "D", "Eb", "E", "F", "Gb", "G"]
 NOTES_SHARP = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"]
-TUNING = ["E", "A", "D", "G", "B", "E"]
 ROMAN_REGEX = r"(XV|XIV|XIII|XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I|xv|xiv|xiii|xii|xi|x|ix|viii|vii|vi|v|iv|iii|ii|i)(dim|aug|sus4|sus2|7)?"
 DEFAULT_PATTERN = {
     "PATTERN_1": ["Root", "Root", "Root", "Root"],
@@ -28,8 +29,11 @@ CHORD_FORMULAS = {
     "SUS4": {
         "formula": [1, 4, 5]
     },
-    "7": {
+    "MAJOR7": {
         "formula": [1, 3, 5, 7]
+    },
+    "MINOR7": {
+        "formula": [1, "b3", 5, "b7"]
     }
 }
 

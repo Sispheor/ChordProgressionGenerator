@@ -7,12 +7,12 @@ from utils import roman_to_int, get_flat_or_sharp_note, get_next_string, get_not
 from statics import *
 
 # Variables
-KEY = "C"
-# PROGRESSION = ["I", "V", "IV", "I"] # major
+KEY = "Bb"
+PROGRESSION = ["I", "V", "IV", "I"] # major
 # PROGRESSION = ["i", "iv", "i", "v"] # minor
 # PROGRESSION = ["VIIdim", "I","VIIdim", "vi"] # dim
 # PROGRESSION = ["IIIaug", "i"] # aug
-PROGRESSION = ["I", "Isus4", "I", "Isus2"] # sus
+# PROGRESSION = ["I", "Isus4", "I", "Isus2"] # sus
 # PROGRESSION = ["I7", "iii", "ii7", "iv7"] # 7th
 
 class ChordProgression(object):
@@ -43,7 +43,9 @@ class ChordProgression(object):
             print(f"Notes of chord '{chord.root_note}' {chord.quality}")
             chord.pretty_print_notes()
             print("\n")
+            print("Tablature:")
             chord.print_tab()
+            print("\n")
 
 
 class Chord(object):
@@ -59,7 +61,10 @@ class Chord(object):
         if root_note_roman.islower():
             self.quality = "MINOR"
         if match.group(2) is not None:
-            self.quality = match.group(2).upper()
+            if match.group(2) == "7":
+                self.quality = f"{self.quality}7"
+            else:
+                self.quality = match.group(2).upper()
 
         self.chord_scale = get_scale_in_key(self.root_note) # always based on major scale
         self.triads = self.get_triads()
@@ -86,12 +91,13 @@ class Chord(object):
                 root.append(new_note)
 
         triads[self.root_note]["root"] = root
-        if self.quality != "7":
-            first_inversion = root[1:] + [root[0]]
-            second_inversion = first_inversion[1:] + [first_inversion[0]]
-            triads[self.root_note]["1st"] = first_inversion
-            triads[self.root_note]["2nd"] = second_inversion
-
+        first_inversion = root[1:] + [root[0]]
+        second_inversion = first_inversion[1:] + [first_inversion[0]]
+        triads[self.root_note]["1st"] = first_inversion
+        triads[self.root_note]["2nd"] = second_inversion
+        if "7" in self.quality:
+            third_inversion = second_inversion[1:] + [second_inversion[0]]
+            triads[self.root_note]["3th"] = third_inversion
         return triads
 
     def pretty_print_notes(self):
@@ -105,65 +111,68 @@ class Chord(object):
             table = list()
             line_root = ["root"] + notes["root"]
             table.append(line_root)
-            if self.quality != "7":
-                line_1st = ["1st"] + notes["1st"]
-                line_2nd = ["2nd"] + notes["2nd"]
-                table.append(line_1st)
-                table.append(line_2nd)
+            line_1st = ["1st"] + notes["1st"]
+            line_2nd = ["2nd"] + notes["2nd"]
+            table.append(line_1st)
+            table.append(line_2nd)
+            if "7" in self.quality:
+                line_3th = ["3th"] + notes["3th"]
+                table.append(line_3th)
             print(tabulate(table, headers, tablefmt="github"))
 
     @property
-    def tablature_note(self):
+    def tablature(self):
         max_string_can_be_used = (len(TUNING) - len(self.triads[self.root_note]["root"])) + 1
         tablature = dict()
         for string_index in range(max_string_can_be_used):
-            current_string = TUNING[string_index]
-            tablature[current_string] = list()
-        for root_string, list_note in tablature.items():
-            list_chord = list()
-            for position_name, notes in self.triads[self.root_note].items():
+            root_string = TUNING[string_index]
+            tablature[root_string] = list()
+            for position_name, triad in self.triads[self.root_note].items():
                 current_string = root_string
-                list_note = list()
-                for note in notes:
+                chord_note_position = dict()
+                for note in triad:
                     current_string_note_index =  get_note_index_on_string(current_string, note)
-                    list_note.append(current_string_note_index)
+                    chord_note_position[current_string] = current_string_note_index
                     current_string = get_next_string(current_string)
-                list_chord.append(list_note)
-            tablature[root_string] = list_chord
-        return tablature
+                tablature[root_string].append(chord_note_position)
+        return reorder_tablature(tablature)
+
 
     def print_tab(self):
-        # Nombre total d'accords
-        num_chords = max(len(chords) for chords in self.tablature_note.values())
+        # Initialize an empty dictionary to store the tablature lines
+        lines = {string: [] for string in reversed(TUNING)}
 
-        # Initialiser une ligne vide pour chaque corde
-        lines = {string: [] for string in TUNING}
+        # Iterate over the strings in reverse order
+        for string in reversed(TUNING):
+            for root, chords in self.tablature.items():
+                for chord in chords:
+                    # Append the fret number if the string is part of the chord, otherwise append '-'
+                    lines[string].append(f"{chord.get(string, '-'):>2}")
 
-        # Parcourir chaque accord
-        for chord_index in range(num_chords):
-            # Créer un accord pour chaque corde
-            for string_index, string in enumerate(reversed(TUNING)):  # Parcours des cordes dans l'ordre inversé
-                # Trouver la note correspondante dans cet accord
-                if string in self.tablature_note and chord_index < len(self.tablature_note[string]):
-                    # Obtenir la note sur cette corde pour cet accord
-                    note = self.tablature_note[string][chord_index][string_index] if string_index < len(
-                        self.tablature_note[string][chord_index]) else "-"
-                    lines[string].append(str(note))
-                else:
-                    # Si aucune donnée, ajouter un "-"
-                    lines[string].append("-")
-            # Ajouter un espace entre les accords
-            for line in lines.values():
-                line.append("-")
+        # Print the formatted tablature
+        for string in reversed(TUNING):
+            print(f"{string} | {' - '.join(lines[string])}")
 
-        # Construire la tablature sous forme de chaîne
-        result = []
-        for string in reversed(TUNING):  # Afficher dans l'ordre E aigu à E grave
-            line = f"{string} | " + " ".join(lines[string])
-            result.append(line)
 
-        print("\n".join(result))
+def reorder_tablature(tablature):
+    """
+    Reorders the chords in the tablature dictionary in ascending order of fret values
+    for each root string.
 
+    Args:
+        tablature (dict): The original tablature dictionary.
+
+    Returns:
+        dict: A new dictionary with reordered chords.
+    """
+    # Create a new dictionary to store the reordered tablature
+    reordered = {}
+
+    for root, chords in tablature.items():
+        # Sort chords for the current root string based on the lowest fret value
+        reordered[root] = sorted(chords, key=lambda chord: min(chord.values()))
+
+    return reordered
 
 def get_scale_in_key(key, base_scale="MAJOR"):
     list_to_use = NOTES_SHARP
@@ -307,14 +316,14 @@ if __name__ == '__main__':
     chord_progression.generate_chords()
     chord_progression.pretty_print()
 
-    # # Get all triad progression possibilities
-    # print("Patterns:\n")
-    # progression_with_triads = get_progression_with_triads(chord_progression)
-    # for pattern_name, progression in progression_with_triads.items():
-    #     print(f"{pattern_name}: {progression}")
-    #
-    # tablature = get_tablature(progression_with_triads)
-    # tablature = remove_open_position(tablature)
-    # tablature = order_patterns_by_value(tablature)
-    # pretty_print_tablature(tablature)
+    # Get all triad progression possibilities
+    print("Patterns:\n")
+    progression_with_triads = get_progression_with_triads(chord_progression)
+    for pattern_name, progression in progression_with_triads.items():
+        print(f"{pattern_name}: {progression}")
+
+    tablature = get_tablature(progression_with_triads)
+    tablature = remove_open_position(tablature)
+    tablature = order_patterns_by_value(tablature)
+    pretty_print_tablature(tablature)
 
