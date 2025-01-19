@@ -31,6 +31,7 @@ class NoteDetector(ft.Text):
     self.running = False
     self.current_note_to_find = None
     self.callback_note_found = None
+    self.last_print = None
 
   def start(self, current_note_to_find=None, callback_note_found=None):
     self.running = True
@@ -44,7 +45,7 @@ class NoteDetector(ft.Text):
       print("Starting HPS guitar tuner...")
       with sd.InputStream(channels=1, callback=self.callback, blocksize=WINDOW_STEP, samplerate=SAMPLE_FREQ):
         while self.running:
-          await asyncio.sleep(0.5)
+          await asyncio.sleep(0.1)
     except Exception as exc:
       print(str(exc))
 
@@ -88,7 +89,8 @@ class NoteDetector(ft.Text):
       signal_power = (np.linalg.norm(self.window_samples, ord=2, axis=0)**2) / len(self.window_samples)
       if signal_power < POWER_THRESH:
         os.system('cls' if os.name=='nt' else 'clear')
-        print(f"Note to find {self.current_note_to_find}. Waiting note: ...")
+        # print(f"Note to find {self.current_note_to_find}. Waiting note: ...")
+        self.print_no_repeat(f"Note to find {self.current_note_to_find}. Waiting note: ...")
         return
 
       # avoid spectral leakage by multiplying the signal with a hann window
@@ -135,17 +137,21 @@ class NoteDetector(ft.Text):
       self.noteBuffer.pop()
       os.system('cls' if os.name=='nt' else 'clear')
       if self.noteBuffer.count(self.noteBuffer[0]) == len(self.noteBuffer):
-        print(f"Note to find {self.current_note_to_find}. Detected note: {closest_note} {max_freq}/{closest_pitch}")
+        self.print_no_repeat(f"Note to find {self.current_note_to_find}. Detected note: {closest_note} {max_freq}/{closest_pitch}")
         self.set_current_note(closest_note, closest_pitch)
       else:
-        print(f"Note to find {self.current_note_to_find}. Waiting note: ...")
+        self.print_no_repeat(f"Note to find {self.current_note_to_find}. Waiting note: ...")
     else:
-      print('no input')
+      self.print_no_repeat('no input')
 
   def set_current_note(self, closest_note, closest_pitch):
     self.value = closest_note
-    self.page.update()
-    if self.current_note_to_find in closest_note:
-      self.callback_note_found()
+    self.callback_note_found(closest_note)
+
+  def print_no_repeat(self, to_be_print):
+    if to_be_print != self.last_print:
+      self.last_print = to_be_print
+      print(to_be_print)
+
 
 
